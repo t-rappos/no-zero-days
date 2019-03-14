@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+    <title>VUE SPA</title>
+
+    <link href='https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons' rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.min.css" rel="stylesheet">
+    
+</head>
+
+<style>
+[v-cloak]{
+    display: hidden;
+}
+.myHeader{
+    color: #737373;
+}
+.sizeCard{
+    max-width: 100px;
+    max-height: 60px;
+    overflow: hidden;
+    width: 100px;
+    /*height: 40px;*/
+    text-align: center;
+}
+.block{
+    display: block;
+    padding: 2px;
+}
+
+</style>
+
+<body>
+    <div>
+        <v-app id="app" v-cloak>
+            
+            <v-toolbar dark color="primary"><v-toolbar-title>No Zero Days</v-toolbar-title></v-toolbar>
+            <v-content>
+            <v-container fluid >
+                    <h4 class="pa-1 myHeader">Calender</h4>
+                    <v-container fluid style="max-height: 360px; overflow: scroll; padding:0; margin:0;">
+                        <v-layout fill-height> <!--column-->
+                            <v-flex v-for="date in dates" xs12 class="pa-1">
+                                <v-card  flat color="white" class=" black--text"> 
+                                    <v-card-title> {{date | formatDate}}</v-card-title>
+                                    <div v-for="event in getDaysEvents(date)">
+                                        <v-card  flat :color="getGoal(event.goal).color" class=" white--text sizeCard" v-on:click="filterByActivity(event.goal, event.activity, date)"> 
+                                            <v-card-title class="block"> {{getActivity(event.activity, event.goal).name}}</v-card-title>
+                                            <!--<v-card-text >{{event.time | formatDate}} </br>  {{event.value}}&nbsp;{{event.metric}}</v-card-text>-->
+                                        </v-card>
+                                    </div>
+                                </v-card>
+                            </v-flex>
+                        </v-layout>
+                    </v-container>
+                </v-container>
+
+                <!--<v-container fluid>
+                    <h4 class="pa-1 myHeader">Mosaic</h4>
+                    <v-layout align-center justify-center>
+                        <v-flex xs12>
+                            <v-card  class="elevation-2"> 
+                                <v-card-text style="height: 180px;">
+                                    <mosaic :events="events"></mosaic>
+                                </v-card-text>
+                            </v-card>
+                        </v-flex>
+                    </v-layout>
+                </v-container>-->
+                
+                <v-container fluid>
+                    <h4 class="pa-1 myHeader">Select Goal</h4>
+                    <v-layout align-center justify-center>
+                        <v-flex xs4 class="pa-1" v-for="goal in goals" v-on:click="selectGoal(goal)" v-if="goal.id <= 2">
+                            <v-card flat :color="goal.color" class=" white--text" :class="{'elevation-6': !enteredGoal || enteredGoal.name != goal.name}"> 
+                                <v-card-title>{{goal.name}}</v-card-title>
+                                <v-card-text style="height: 60px;"></v-card-text>
+                            </v-card>
+                        </v-flex>
+
+                    </v-layout>
+                </v-container>
+
+                <v-container fluid >
+                    <h4 class="pa-1 myHeader">Recent History</h4>
+                    <v-container fluid style="max-height: 360px; overflow: scroll; padding:0; margin:0;">
+                        <v-layout fill-height> <!--column-->
+                            <v-flex v-for="event in filteredEvents" xs12 class="pa-1">
+                                <v-card  flat :color="getGoal(event.goal).color" class=" white--text"> 
+                                    <v-card-title> {{getActivity(event.activity, event.goal).name}}</v-card-title>
+                                    <v-card-text >{{event.time | formatDate}} </br>  {{event.value}}&nbsp;{{event.metric}}</v-card-text>
+                                </v-card>
+                            </v-flex>
+                        </v-layout>
+                    </v-container>
+                </v-container>
+
+                <v-container fluid v-if="!!enteredGoal">
+                    <h4 class="pa-1 myHeader">Log Record</h4>
+                    <v-form v-model="valid" class="pa-1">
+                        <v-select
+                            v-model="enteredActivity"
+                            item-text="name"
+                            :items="enteredGoal.activities"
+                            :rules="[v => !!v || 'Item is required']"
+                            label="Select an Activity"
+                            return-object
+                            required
+                        ></v-select>
+
+                        <v-text-field
+                            v-model="enteredValue"
+                            :rules="[v=> !!v || 'Record is required']"
+                            :label="enteredActivity.description"
+                            :suffix="enteredActivity.metric"
+                            required
+                        ></v-text-field> 
+
+                        <v-text-field
+                            v-model="enteredComment"
+                            label="Enter Comment Here"
+                        ></v-text-field>
+
+                        <v-btn
+                            :disabled="!valid"
+                            @click="addEvent"
+                        >
+                        submit
+                        </v-btn>
+
+                    </v-form>
+                </v-container>
+            </v-content>
+            <v-footer app></v-footer>
+        </v-app>
+    </div>
+
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.20.1/moment.min.js"></script>
+    <script src="https://unpkg.com/vee-validate@2.0.0-rc.25/dist/vee-validate.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.18/dist/vue.js"></script>
+    <script src="https://unpkg.com/http-vue-loader"></script>
+    <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.js"></script>
+    
+
+    <!-- Vue Pages and Components here -->
+    <script src='./pages/home.vue.js'></script>
+    <script src='./pages/components/toolbar.vue.js'></script>
+    <script src='mosaic.js'></script>
+
+    <script>
+        //https://github.com/sobpilot/vuespa/tree/master/src
+        //Vue.use(VueRouter);
+        Vue.use(VeeValidate);
+
+        //https://forum.vuejs.org/t/how-to-format-date-for-display/3586/2
+        Vue.filter('formatDate', function(value) {
+            if (value) {
+                return value.format('MM/DD')
+            }
+        });
+        
+
+/*
+
+    custom metrics...
+
+    activity
+        parameters e.g. distance, time taken
+        display values [fitness: {distance / time}, distance: distance]
+
+*/
+        
+        const dates = [];
+
+        dates.push(moment().startOf('day').add(1, 'day').subtract(7*4, 'days'));
+        for(let i = 2; i < 7*4 + 1; i += 1){
+            dates.push(moment().startOf('day').subtract(7*4, 'days').add(i, 'days'));
+        }
+
+        console.log("dates", dates);
+
+        var app = new Vue({
+            el: '#app',
+            watch: {},
+            created: function(){
+                this.loadEvents();
+            },
+            data: function(){
+                return{
+                    enteredGoal: null, //object
+                    filteredActivity: null,
+                    filteredDate: null,
+                    goals: [
+                        {
+                            name: "Exercise",
+                            active: true,
+                            color: "cyan darken-2",
+                            activities: [
+                                {name: 'Jogging', description: 'Time take to jog around park', metric: ' Mins : Seconds', index: 0},
+                                {name: 'Weight', description: 'Current weight', metric: 'KGs', index: 1}],
+                            id: 0
+                        },
+                        {
+                            name: "Programming",
+                            active: true,
+                            color: "yellow darken-2",
+                            activities: [
+                                {name: 'Tech Reading', description: 'Reading tech books', metric: 'Articles', index: 0},
+                                {name: 'Programming Practice', description: 'Working on hobby projects', metric: 'Hours : Minutes', index: 1}],
+                            id: 1
+                        },
+                        {
+                            name: "Music",
+                            active: true,
+                            color: "red darken-2",
+                            activities: [
+                                {name: 'Music listening', description: 'Analytical listening to music', metric: 'Songs', index: 0},
+                                {name: 'Music Production', description: 'Working on new tracks', metric: 'Hours : Minutes', index: 1}],
+                            id: 2
+                        },
+                        {
+                            name: "none1",
+                            active: true,
+                            color: "cyan lighten-5",
+                            activities: [],
+                            id: 3
+                        },
+                        {
+                            name: "none2",
+                            active: true,
+                            color: "yellow lighten-5",
+                            activities: [],
+                            id: 4
+                        },
+                        {
+                            name: "none3",
+                            active: true,
+                            color: "red lighten-5",
+                            activities: [],
+                            id: 5
+                        },
+                    ],
+                    /*
+                    activities: [
+                        {name: 'Jogging', description: 'Time take to jog around park', metric: ' Mins : Seconds'},
+                        {name: 'Weight', description: 'Current weight', metric: 'KGs'}
+                    ],
+                    */
+                    enteredActivity: {name: '', description: '', metric: ''},
+                    enteredValue: "",
+                    enteredComment: "",
+                    dates,
+                    events: [
+                        {time: moment().subtract(1, 'day'), goal: 'Programming', activity: '0', value: 19*60 + 30, metric: 'seconds', comment: ""},
+                    ],
+                    valid: false,
+                };
+            },
+            computed: {
+                filteredEvents() {
+                    return this.events.filter(item => { 
+                        if(!this.enteredGoal){
+                            return true;
+                        } else {
+                            if(!this.filteredActivity || !this.filteredDate){
+                                return item.goal == this.enteredGoal.name;
+                            } else {
+                                let diff = item.time.startOf('day').diff(this.filteredDate.startOf('day'), 'days')
+                                return item.goal == this.enteredGoal
+                                && item.activity == this.filteredActivity
+                                && diff == 0;
+                            }
+                        }
+                    })
+                }
+            },
+            methods: {
+                getDaysEvents: function(date){
+                    let events = this.events.filter(
+                        (e)=>{ 
+                            //console.log("Comparing ", e.time);
+                            //console.log("With: ", date);
+                            if(typeof e.time == "string"){
+                                e.time = moment(e.time);
+                            }
+                            let diff = moment(e.time).startOf('day').diff(date.startOf('day'), 'days')
+                            let b =  diff == 0; 
+                           // console.log("Days diff = ", diff);
+                            if(b){console.log("Found event for day", e);}
+                            return b;
+                        }
+                    );
+
+                    let gs = [{time: date, goal: 'none1', activity: '', value: 0, metric: '', comment: ""},
+                    {time: date, goal: 'none2', activity: '', value: 0, metric: '', comment: ""},
+                    {time: date, goal: 'none3', activity: '', value: 0, metric: '', comment: ""}];
+                    
+                    if(events.length > 0){
+                        this.goals.forEach((goal)=>{
+                            if(goal.name != "none1" && goal.name != "none2" && goal.name != "none3" ){
+                                events.filter((e)=>{
+                                    return e.goal === this.goals[goal.id].name;
+                                })
+                                .forEach((e)=>{
+                                    gs[goal.id] = e;
+                                });
+                            }
+                        })
+                       
+                    }
+
+                    return gs;
+                },
+                getActivity: function(activityIndex, goal){
+                    let f = this.goals.filter((g)=>{return g.name == goal;})
+                    n = f[0].activities[activityIndex];
+                    if(!n){return {name: 'none', description: '', metric: ''};}
+                    return n;
+                },
+                getGoal: function(goalName){
+                    //todo: replace this with a map
+                    for(let i = 0; i < this.goals.length; i++){
+                        if(this.goals[i].name == goalName){
+                            return this.goals[i];
+                        }
+                    }
+                },
+                storeInfo: function(){
+                    console.log("storeInfo");
+                    localStorage.setItem('name', 'tom');
+                },
+                getInfo: function(){
+                    console.log(localStorage.getItem('name'));
+                },
+                addEvent: function(){
+                    console.log("addEvent", this);
+                    this.events.push({time: moment(), 
+                                      goal: this.enteredGoal.name, 
+                                      activity: this.enteredActivity.index, 
+                                      value: this.enteredValue, 
+                                      metric: this.enteredActivity.metric, 
+                                      comment: this.enteredComment});
+                    this.saveEvents();
+                },
+                selectGoal: function(goal){
+                    console.log("selectGoal: arguments: ", arguments);
+                    console.log("selectGoal: this: ", this);
+                    if(this.enteredGoal != goal){
+                        this.enteredGoal = goal;
+                    } else {
+                        this.enteredGoal = null;
+                    }
+                    this.filteredDate = null;
+                    this.filteredActivity = null;
+                },
+                filterByActivity: function(goalName, activityIndex, date ){
+                    console.log(goalName + ",  " + activityIndex + ", " + date)
+                    this.enteredGoal = goalName;
+                    this.filteredDate = date;
+                    this.filteredActivity = activityIndex;
+                },
+                saveEvents: function(){
+                    //console.log("events", this.events);
+                    //console.log("jevents", JSON.stringify(this.events));
+                    //let bres = localStorage.getItem('events');
+                    //let jbres = JSON.parse(bres);
+                    //console.log("Getting events b4: ", bres);
+                    //console.log("Getting events b4: ", jbres);
+                    localStorage.setItem('events', JSON.stringify(this.events));
+                    //let res = localStorage.getItem('events');
+                    //let jres = JSON.parse(res);
+                    //console.log("Getting events after ", res);
+                    //console.log("Getting events after ", jres);
+
+                },
+                loadEvents: function(){
+                    let bres = localStorage.getItem('events');
+                    let jbres = JSON.parse(bres);
+                    if(bres && jbres){
+                        this.events = jbres;
+                    }
+                }
+                
+            },
+            //router
+        })
+        
+    </script>
+
+</body>
+
+</html>
