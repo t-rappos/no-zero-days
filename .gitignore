@@ -110,3 +110,5 @@ pyvenv.cfg/
 
 .idea/
 Scripts/
+
+config.py
