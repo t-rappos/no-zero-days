@@ -6,7 +6,15 @@ from flask_sqlalchemy import SQLAlchemy
 
 ma = Marshmallow()
 db = SQLAlchemy()
+session = db.session
 
+'''
+id
+creation_date
+activity_id
+value
+comment
+'''
 
 class Event(db.Model):
     __tablename__ = "event"
@@ -24,6 +32,87 @@ class EventSchema(ma.Schema):
     activity_id = fields.Integer(required=True)
     value = fields.Integer(required=True)
     comment = fields.String(required=False)
+
+
+'''
+id
+name
+description
+metric
+goal_id
+'''
+
+
+class Activity(db.Model):
+    __tablename__ = "activity"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=True)
+    description  = db.Column(db.String(250), nullable=True)
+    metric = db.Column(db.String(100), nullable=True)
+    goal_id = db.Column(db.Integer, db.ForeignKey('goal.id', ondelete='CASCADE'), nullable=False)
+    goal = db.relationship('Goal', backref=db.backref('activity', lazy='dynamic'))
+
+
+class ActivitySchema(ma.Schema):
+    id = fields.Integer(dump_only=True)
+    name = fields.String(required=False)
+    description = fields.String(required=False)
+    metric = fields.String(required=False)
+    goal_id = fields.Integer(required=True)
+
+
+'''
+id
+name
+active
+color
+description
+user_id
+'''
+
+
+class Goal(db.Model):
+    __tablename__ = "goal"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=True)
+    active = db.Column(db.Boolean, nullable=True)
+    color = db.Column(db.String(100), nullable=True)
+    description  = db.Column(db.String(250), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    user = db.relationship('User', backref=db.backref('goal', lazy='dynamic'))
+
+
+class GoalSchema(ma.Schema):
+    id = fields.Integer(dump_only=True)
+    name = fields.String(required=False)
+    active = fields.Boolean(required=False)
+    color = fields.String(required=False)
+    description = fields.String(required=False)
+    metric = fields.String(required=False)
+    user_id = fields.Integer(required=True)
+
+
+'''
+id
+username
+hashed_password
+email
+'''
+
+
+class User(db.Model):
+    __tablename__ = "user"
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), nullable=False)
+    hashed_password = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(200), nullable=False)
+
+
+class UserSchema(ma.Schema):
+    id = fields.Integer(dump_only=True)
+    username = fields.String(required=True)
+    hashed_password = fields.String(required=True)
+    email = fields.String(required=False)
 
 
 class Comment(db.Model):

@@ -1,12 +1,43 @@
 from flask import request
 from flask_restful import Resource
-from Model import db, Event, EventSchema
+from Model import db, User, UserSchema, Event, EventSchema, session
 import datetime
 
+users_schema = UserSchema(many=True)
+user_schema = UserSchema()
 events_schema = EventSchema(many=True)
 event_schema = EventSchema()
 
 
+# /users
+# /users/1
+class UsersResource(Resource):
+    def get(self, id=None):
+        if not id:
+            users = User.query.all()
+            users = users_schema.dump(users).data
+            return {'status': 'success', 'data': users}, 200
+        else:
+            user = User.query.get(id)
+            user = user_schema.dump(user).data
+            return {'status': 'success', 'data': user}, 200
+
+
+# /users/1/events
+# /users/1/events/1
+class UserEventsResource(Resource):
+    def get(self, user_id, event_id=None):
+        if not event_id:
+            session.query()
+            events = Event.query.filter_by(user_id=user_id)
+            events = events_schema.dump(events).data
+            return {'status': 'success', 'data': events}, 200
+        else:
+            event = Event.query.filter_by(user_id=user_id, event_id=event_id)
+            event = event_schema.dump(event).data
+            return {'status': 'success', 'data': event}, 200
+
+'''
 class EventsResource(Resource):
     def get(self):
         events = Event.query.all()
@@ -120,7 +151,7 @@ class EventResource(Resource):
         result = event_schema.dump(event).data
 
         return {"status": 'success', 'data': result}, 204
-
+'''
 '''
     def post(self):
         json_data = request.get_json(force=True)
